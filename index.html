@@ -58,18 +58,30 @@ const stops = [
     role: "stay",
     drive: "525 mi / ~8 hr from Lindon (I-80 W)",
     arrive: "Arrive Sat, Jul 11 4:00 PM PDT (clocks go back 1 hr — Pacific time)",
-    depart: "Depart Sun, Jul 12 10:00 AM PDT",
+    depart: "Depart Sun, Jul 12 9:00 AM PDT",
     lodging: "Budget motel, ~$70",
     food: "~$15/person",
     notes: ["Riverwalk District + Wingfield Park (free)", "Walk the casino floors for the vibe (no gambling, 21+ only)"]
+  },
+  {
+    day: "Day 2 — Sun, Jul 12 (stop)",
+    name: "Lake Tahoe (Tahoe City), CA",
+    coords: [39.1670, -120.1430],
+    role: "stop",
+    drive: "~50 mi / ~1 hr from Reno (I-80 W to CA-89 S)",
+    arrive: "Arrive Sun, Jul 12 10:00 AM PDT",
+    depart: "Depart Sun, Jul 12 1:00 PM PDT (after ~3 hr stop)",
+    lodging: null,
+    food: "~$15/person (lunch in Tahoe City)",
+    notes: ["Commons Beach / Kings Beach — free public lake access", "Swim, picnic, or rent a kayak/paddleboard (~$20–30/hr, optional)", "Short lakeside walk + photos"]
   },
   {
     day: "Day 2–3 — Sun–Mon, Jul 12–13",
     name: "San Francisco, CA",
     coords: [37.7749, -122.4194],
     role: "stay",
-    drive: "220 mi / ~4 hr from Reno (I-80 W)",
-    arrive: "Arrive Sun, Jul 12 2:00 PM PDT",
+    drive: "~200 mi / ~3.5 hr from Lake Tahoe (CA-89 N to I-80 W)",
+    arrive: "Arrive Sun, Jul 12 4:30 PM PDT",
     depart: "Depart Tue, Jul 14 9:00 AM PDT (after 2 nights)",
     lodging: "FREE — staying with a friend",
     food: "~$15–20/person/day",
@@ -165,7 +177,7 @@ function buildPopup(stop, index) {
 
 const numberedIcon = (n, role) => L.divIcon({
   className: 'num-icon',
-  html: `<div style="background:${role === 'start' || role === 'end' ? '#1b1b1b' : '#2d6a4f'}; color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.4);">${n}</div>`,
+  html: `<div style="background:${role === 'start' || role === 'end' ? '#1b1b1b' : role === 'stop' ? '#3a7ca5' : '#2d6a4f'}; color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.4);">${n}</div>`,
   iconSize: [28, 28],
   iconAnchor: [14, 14]
 });
