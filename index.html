@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>8-Day Road Trip — Lindon Loop</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root { --green: #2d6a4f; --green-light: #52b788; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  #sidebar { width: 300px; background: #1b1b1b; color: #f8f9fa; overflow-y: auto; padding: 16px; flex-shrink: 0; }
+  #sidebar h1 { font-size: 18px; margin: 0 0 4px; color: var(--green-light); }
+  #sidebar .sub { font-size: 12px; color: #999; margin-bottom: 16px; line-height: 1.5; }
+  .stop { background: #262626; border-left: 4px solid var(--green-light); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; cursor: pointer; transition: background 0.15s; }
+  .stop:hover, .stop.active { background: #333; border-left-color: #fff; }
+  .stop .day { font-size: 11px; color: var(--green-light); font-weight: 600; text-transform: uppercase; }
+  .stop .name { font-size: 15px; font-weight: 600; margin: 2px 0; }
+  .stop .meta { font-size: 12px; color: #bbb; }
+  #hint { font-size: 11px; color: #777; margin-top: 14px; line-height: 1.5; }
+  #map { flex: 1; }
+  .leaflet-popup-content { font-family: inherit; min-width: 220px; }
+  .popup-title { font-weight: 700; color: var(--green); font-size: 15px; margin-bottom: 4px; }
+  .popup-section { margin-top: 6px; font-size: 13px; color: #222; }
+  .popup-list { margin: 4px 0 0; padding-left: 18px; font-size: 12.5px; color: #222; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h1>8-Day Road Trip</h1>
+    <div class="sub">Lindon, UT loop &middot; ~2,055 mi &middot; ~$1,625 budget (2 people)</div>
+    <div id="stop-list"></div>
+    <div id="hint">Click a stop to zoom in on the map. Click any map marker for full details.</div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const stops = [
+  {
+    day: "Day 1 — Sun",
+    name: "Lindon, UT",
+    coords: [40.3380, -111.7211],
+    role: "start",
+    drive: "Departs 9am",
+    depart: "Depart Sun 9:00 AM MDT",
+    arrive: null,
+    lodging: null,
+    food: null,
+    notes: "Trip start. Check oil, tire pressure/tread, coolant before leaving."
+  },
+  {
+    day: "Day 1 night",
+    name: "Reno, NV",
+    coords: [39.5296, -119.8138],
+    role: "stay",
+    drive: "525 mi / ~8 hr from Lindon (I-80 W)",
+    arrive: "Arrive Sun 4:00 PM PDT (clocks go back 1 hr — Pacific time)",
+    depart: "Depart Mon 10:00 AM PDT",
+    lodging: "Budget motel, ~$70",
+    food: "~$15/person",
+    notes: ["Riverwalk District + Wingfield Park (free)", "Walk the casino floors for the vibe (no gambling, 21+ only)"]
+  },
+  {
+    day: "Day 2–3",
+    name: "San Francisco, CA",
+    coords: [37.7749, -122.4194],
+    role: "stay",
+    drive: "220 mi / ~4 hr from Reno (I-80 W)",
+    arrive: "Arrive Mon 2:00 PM PDT",
+    depart: "Depart Wed 9:00 AM PDT (after 2 nights)",
+    lodging: "FREE — staying with a friend",
+    food: "~$15–20/person/day",
+    notes: ["Golden Gate Bridge + Lombard Street (free)", "Twin Peaks skyline view (free)", "Fisherman's Wharf / Pier 39 (free)", "Optional: Alcatraz (~$45–50/person, book ahead)"]
+  },
+  {
+    day: "Day 4 night",
+    name: "Eureka, CA",
+    coords: [40.8021, -124.1637],
+    role: "stay",
+    drive: "270 mi / ~5 hr from SF (US-101 N)",
+    arrive: "Arrive Wed 2:00 PM PDT",
+    depart: "Depart Thu 9:00 AM PDT",
+    lodging: "~$110",
+    food: "~$15/person",
+    notes: ["Avenue of the Giants redwoods drive (free)", "Old Town Eureka (free)", "Trinidad State Beach detour (free)"]
+  },
+  {
+    day: "Day 5 night",
+    name: "Newport, OR",
+    coords: [44.6368, -124.0535],
+    role: "stay",
+    drive: "290 mi / ~5.5 hr from Eureka (US-101 N)",
+    arrive: "Arrive Thu 2:30 PM PDT",
+    depart: "Depart Fri 9:00 AM PDT",
+    lodging: "~$130",
+    food: "~$18/person",
+    notes: ["Old Bayfront sea lions (free)", "Nye Beach (free)", "Yaquina Head Lighthouse (~$7/vehicle)", "Optional: Oregon Coast Aquarium (~$25–30/person)"]
+  },
+  {
+    day: "Day 6 night",
+    name: "Crater Lake, OR",
+    coords: [42.8684, -122.1685],
+    role: "stay",
+    drive: "200 mi / ~4 hr from Newport",
+    arrive: "Arrive Fri 1:00 PM PDT",
+    depart: "Depart Sat 8:00 AM PDT",
+    lodging: "Klamath Falls / Prospect area, ~$115",
+    food: "~$15/person",
+    notes: ["Rim Drive overlooks", "Phantom Ship viewpoint", "Entrance fee: $30/vehicle"]
+  },
+  {
+    day: "Day 7 night",
+    name: "Twin Falls, ID",
+    coords: [42.5558, -114.4701],
+    role: "stay",
+    drive: "330 mi / ~6 hr from Crater Lake",
+    arrive: "Arrive Sat 3:00 PM MDT (clocks go forward 1 hr — Mountain time)",
+    depart: "Depart Sun 10:00 AM MDT",
+    lodging: "~$85",
+    food: "~$15/person",
+    notes: ["Shoshone Falls (~$5/vehicle)", "Perrine Bridge"]
+  },
+  {
+    day: "Day 8 — Sun",
+    name: "Lindon, UT (home)",
+    coords: [40.3380, -111.7211],
+    role: "end",
+    drive: "220 mi / ~3.5 hr from Twin Falls",
+    arrive: "Arrive Sun 1:30 PM MDT",
+    depart: null,
+    lodging: null,
+    food: "~$15/person",
+    notes: "Trip complete — home early afternoon."
+  }
+];
+
+const map = L.map('map', { scrollWheelZoom: true }).setView([41.5, -118], 5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+L.polyline(stops.map(s => s.coords), { color: '#2d6a4f', weight: 3, dashArray: '6 8' }).addTo(map);
+
+function buildPopup(stop, index) {
+  const flag = (stop.role === 'start' || stop.role === 'end') ? '🏁' : '📍';
+  let html = `<div class="popup-title">${flag} ${stop.name}</div>`;
+  html += `<div class="popup-section"><b>${stop.day}</b></div>`;
+  html += `<div class="popup-section">🚗 ${stop.drive}</div>`;
+  if (stop.arrive) html += `<div class="popup-section">🕐 ${stop.arrive}</div>`;
+  if (stop.depart) html += `<div class="popup-section">🕐 ${stop.depart}</div>`;
+  if (stop.lodging) html += `<div class="popup-section">🛏️ ${stop.lodging}</div>`;
+  if (stop.food) html += `<div class="popup-section">🍔 ${stop.food}</div>`;
+  if (Array.isArray(stop.notes)) {
+    html += `<ul class="popup-list">${stop.notes.map(n => `<li>${n}</li>`).join('')}</ul>`;
+  } else if (stop.notes) {
+    html += `<div class="popup-section">${stop.notes}</div>`;
+  }
+  return html;
+}
+
+const numberedIcon = (n, role) => L.divIcon({
+  className: 'num-icon',
+  html: `<div style="background:${role === 'start' || role === 'end' ? '#1b1b1b' : '#2d6a4f'}; color:#fff; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.4);">${n}</div>`,
+  iconSize: [28, 28],
+  iconAnchor: [14, 14]
+});
+
+const markers = stops.map((stop, i) => {
+  return L.marker(stop.coords, { icon: numberedIcon(i + 1, stop.role) })
+    .addTo(map)
+    .bindPopup(buildPopup(stop, i));
+});
+
+const sidebarList = document.getElementById('stop-list');
+stops.forEach((stop, i) => {
+  const div = document.createElement('div');
+  div.className = 'stop';
+  const times = [stop.arrive, stop.depart].filter(Boolean).join(' &middot; ');
+  div.innerHTML = `<div class="day">${stop.day}</div><div class="name">${stop.name}</div><div class="meta">${stop.drive}</div>${times ? `<div class="meta">${times}</div>` : ''}`;
+  div.addEventListener('click', () => {
+    map.setView(stop.coords, 8, { animate: true });
+    markers[i].openPopup();
+    document.querySelectorAll('.stop').forEach(el => el.classList.remove('active'));
+    div.classList.add('active');
+  });
+  sidebarList.appendChild(div);
+});
+
+map.fitBounds(L.polyline(stops.map(s => s.coords)).getBounds(), { padding: [40, 40] });
+</script>
+</body>
+</html>
